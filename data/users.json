@@ -3,5 +3,11 @@
     "id": 1,
     "name": "Bhanu Prasad",
     "email": "bhanu12@gmail.com"
+  },
+  {
+    "id": 2,
+    "name": "lokesh",
+    "email": "lokesh@gmail.com",
+    "password": "$2b$10$kN1XyGu7EmaJ9soJRHQBreyKRYW02xCHGdfKx1z28UibUN1xPZn/q"
   }
 ]
