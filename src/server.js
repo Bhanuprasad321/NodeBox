@@ -1,667 +1,68 @@
 require("dotenv").config({ path: "../.env" });
 
-const fs = require("fs");
 const http = require("http");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const db = require("./db");
 
-http
-  .createServer((req, res) => {
-    const method = req.method;
-    const url = req.url;
+const server = http.createServer((req, res) => {
+  const method = req.method;
+  const url = req.url;
 
-    const parsedUrl = new URL(url, `http://${req.headers.host}`);
-    const pathname = parsedUrl.pathname;
+  const parsedUrl = new URL(url, `http://${req.headers.host}`);
+  const pathname = parsedUrl.pathname;
 
-    if (method === "GET" && pathname === "/") {
-      res.writeHead(200, { "Content-Type": "text/plain" });
-      res.end(`This is a ${method} ${pathname} Request!`);
-    } else if (method === "POST" && pathname === "/register") {
-      let body = "";
+  // GET /
 
-      req.on("data", (chunk) => {
-        body += chunk.toString();
-      });
+  if (method === "GET" && pathname === "/") {
+    res.writeHead(200, {
+      "Content-Type": "text/plain",
+    });
 
-      req.on("end", () => {
-        try {
-          // 1. Convert JSON string into JavaScript object
-          const data = JSON.parse(body);
+    return res.end(`This is a ${method} ${pathname} Request!`);
+  }
 
-          // 2. Validate input
-          if (!data.name || !data.email || !data.password) {
-            res.writeHead(400, {
-              "Content-Type": "application/json",
-            });
+  // POST /register
+  else if (method === "POST" && pathname === "/register") {
+    let body = "";
 
-            return res.end(
-              JSON.stringify({
-                message: "Name, email and password are required",
-              }),
-            );
-          }
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
 
-          // 3. Read existing users
-          fs.readFile("../data/users.json", "utf8", (err, fileData) => {
-            if (err) {
-              console.error(err);
-
-              res.writeHead(500, {
-                "Content-Type": "application/json",
-              });
-
-              return res.end(
-                JSON.stringify({
-                  message: "Unable to read users file",
-                }),
-              );
-            }
-
-            try {
-              // 4. Convert file content into JavaScript array
-              const users = JSON.parse(fileData);
-
-              // 5. Check duplicate email
-              const existingUser = users.find(
-                (user) => user.email === data.email,
-              );
-
-              if (existingUser) {
-                res.writeHead(409, {
-                  "Content-Type": "application/json",
-                });
-
-                return res.end(
-                  JSON.stringify({
-                    message: "Email already registered",
-                  }),
-                );
-              }
-
-              // 6. Generate ID
-              const newId =
-                users.length > 0 ? users[users.length - 1].id + 1 : 1;
-
-              // 7. Hash password
-              bcrypt.hash(data.password, 10, (err, hashedPassword) => {
-                if (err) {
-                  console.error(err);
-
-                  res.writeHead(500, {
-                    "Content-Type": "application/json",
-                  });
-
-                  return res.end(
-                    JSON.stringify({
-                      message: "Unable to hash password",
-                    }),
-                  );
-                }
-
-                // 8. Create new user
-                const newUser = {
-                  id: newId,
-                  name: data.name,
-                  email: data.email,
-                  password: hashedPassword,
-                };
-
-                // 9. Add user to array
-                users.push(newUser);
-
-                // 10. Save users
-                fs.writeFile(
-                  "../data/users.json",
-                  JSON.stringify(users, null, 2),
-                  (err) => {
-                    if (err) {
-                      console.error(err);
-
-                      res.writeHead(500, {
-                        "Content-Type": "application/json",
-                      });
-
-                      return res.end(
-                        JSON.stringify({
-                          message: "Unable to save user",
-                        }),
-                      );
-                    }
-
-                    // 11. Send response
-                    res.writeHead(201, {
-                      "Content-Type": "application/json",
-                    });
-
-                    res.end(
-                      JSON.stringify({
-                        message: "User registered successfully",
-                        user: {
-                          id: newUser.id,
-                          name: newUser.name,
-                          email: newUser.email,
-                        },
-                      }),
-                    );
-                  },
-                );
-              });
-            } catch (err) {
-              res.writeHead(500, {
-                "Content-Type": "application/json",
-              });
-
-              return res.end(
-                JSON.stringify({
-                  message: "Invalid users file",
-                }),
-              );
-            }
-          });
-        } catch (err) {
-          // Invalid JSON received from client
-          res.writeHead(400, {
-            "Content-Type": "application/json",
-          });
-
-          res.end(
-            JSON.stringify({
-              message: "Invalid JSON",
-            }),
-          );
-        }
-      });
-    } else if (method === "POST" && pathname === "/login") {
-      let loginData = "";
-      req.on("data", (chunk) => {
-        loginData += chunk.toString();
-      });
-
-      req.on("end", async () => {
-        try {
-          const loginCred = JSON.parse(loginData);
-
-          if (!loginCred.email || !loginCred.password) {
-            res.writeHead(400, {
-              "content-type": "application/json",
-            });
-            return res.end(
-              JSON.stringify({ message: "Invalid Email or Password" }),
-            );
-          }
-
-          fs.readFile("../data/users.json", "utf8", (err, data) => {
-            if (err) {
-              res.writeHead(500, {
-                "content-type": "application/json",
-              });
-              return res.end(
-                JSON.stringify({ message: "Unable to read the users data" }),
-              );
-            }
-            try {
-              const users = JSON.parse(data);
-              const existingUser = users.find(
-                (u) => u.email === loginCred.email,
-              );
-              if (!existingUser) {
-                res.writeHead(401, {
-                  "content-type": "application/json",
-                });
-                return res.end(
-                  JSON.stringify({ message: "User with email not found" }),
-                );
-              }
-
-              bcrypt.compare(
-                loginCred.password,
-                existingUser.password,
-                (err, isMatch) => {
-                  if (isMatch) {
-                    const token = jwt.sign(
-                      {
-                        id: existingUser.id,
-                        email: existingUser.email,
-                      },
-                      process.env.JWT_SECRET,
-                      {
-                        expiresIn: "1h",
-                      },
-                    );
-
-                    res.writeHead(200, {
-                      "content-type": "application/json",
-                    });
-
-                    return res.end(
-                      JSON.stringify({
-                        message: "Login successful",
-                        token: token,
-                      }),
-                    );
-                  } else {
-                    res.writeHead(400, {
-                      "content-type": "application/json",
-                    });
-                    return res.end(
-                      JSON.stringify({ message: "Wrong Password" }),
-                    );
-                  }
-                },
-              );
-            } catch (err) {
-              res.writeHead(500, {
-                "content-type": "application/json",
-              });
-              return res.end(
-                JSON.stringify({ message: "unable to get the users data" }),
-              );
-            }
-          });
-        } catch (err) {
-          console.log(err);
-          res.writeHead(400, {
-            "content-type": "application/json",
-          });
-          return res.end(
-            JSON.stringify({ message: "unable to get the login credentials" }),
-          );
-        }
-      });
-    } else if (method === "GET" && pathname === "/profile") {
-      const authHeader = req.headers.authorization;
-
-      if (!authHeader) {
-        res.writeHead(401, {
-          "content-type": "application/json",
-        });
-
-        return res.end(
-          JSON.stringify({
-            message: "Authorization header missing",
-          }),
-        );
-      }
-
-      const token = authHeader.split(" ")[1];
-
+    req.on("end", () => {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const data = JSON.parse(body);
 
-        fs.readFile("../data/users.json", "utf8", (err, data) => {
-          if (err) {
-            res.writeHead(500, {
-              "content-type": "application/json",
-            });
-
-            return res.end(
-              JSON.stringify({
-                message: "Unable to read users data",
-              }),
-            );
-          }
-
-          const users = JSON.parse(data);
-
-          const user = users.find((u) => u.id === decoded.id);
-
-          if (!user) {
-            res.writeHead(404, {
-              "content-type": "application/json",
-            });
-
-            return res.end(
-              JSON.stringify({
-                message: "User not found",
-              }),
-            );
-          }
-
-          res.writeHead(200, {
-            "content-type": "application/json",
-          });
-
-          return res.end(
-            JSON.stringify({
-              id: user.id,
-              name: user.name,
-              email: user.email,
-            }),
-          );
-        });
-      } catch (err) {
-        res.writeHead(401, {
-          "content-type": "application/json",
-        });
-
-        return res.end(
-          JSON.stringify({
-            message: "Invalid or expired token",
-          }),
-        );
-      }
-    } else if (method === "PUT" && pathname.startsWith("/users/")) {
-      const id = parseInt(pathname.split("/")[2]);
-      //for updating we will send some data
-      //we need to use req.on
-      let updateData = "";
-      req.on("data", (chunk) => {
-        updateData += chunk.toString();
-      });
-      req.on("end", async () => {
-        //get the user data
-        fs.readFile("../data/users.json", (err, data) => {
-          if (err) {
-            console.log(err);
-            res.writeHead(500, {
-              "content-type": "application/json",
-            });
-            return res.end(
-              JSON.stringify({
-                message: "Unable to read users file",
-              }),
-            );
-          }
-          try {
-            const users = JSON.parse(data);
-            const updateD = JSON.parse(updateData);
-
-            const user = users.find((u) => u.id === id);
-            if (!user) {
-              res.writeHead(404, {
-                "content-type": "application/json",
-              });
-              return res.end(
-                JSON.stringify({
-                  message: "Unable to find the user",
-                }),
-              );
-            }
-            if (updateD.name || updateD.email) {
-              if (updateD.name) {
-                user.name = updateD.name;
-              }
-
-              if (updateD.email) {
-                user.email = updateD.email;
-              }
-            } else {
-              res.writeHead(400, {
-                "content-type": "application/json",
-              });
-              return res.end(
-                JSON.stringify({
-                  message: "Enter Valid Name and Email",
-                }),
-              );
-            }
-            fs.writeFile(
-              "../data/users.json",
-              JSON.stringify(users, null, 2),
-              (err) => {
-                if (err) {
-                  console.error(err);
-
-                  res.writeHead(500, {
-                    "Content-Type": "application/json",
-                  });
-
-                  return res.end(
-                    JSON.stringify({
-                      message: "Unable to update user",
-                    }),
-                  );
-                }
-
-                // 8. Send response
-                res.writeHead(200, {
-                  "Content-Type": "application/json",
-                });
-
-                res.end(
-                  JSON.stringify({
-                    message: "User data updated",
-                    user: user,
-                  }),
-                );
-              },
-            );
-          } catch (err) {
-            res.writeHead(500, {
-              "content-type": "application/json",
-            });
-            return res.end(
-              JSON.stringify({
-                message: err,
-              }),
-            );
-          }
-        });
-      });
-    } else if (method === "GET" && pathname === "/users") {
-      fs.readFile("../data/users.json", "utf8", (err, data) => {
-        if (err) {
-          console.log(err);
-
-          res.writeHead(500, {
-            "content-type": "application/json",
-          });
-          return res.end(
-            JSON.stringify({
-              message: "Unable to read users file",
-            }),
-          );
-        }
-
-        try {
-          const users = JSON.parse(data);
-
-          res.writeHead(200, {
-            "Content-Type": "application/json",
-          });
-
-          return res.end(
-            JSON.stringify({
-              message: "All users data",
-              users: users,
-            }),
-          );
-        } catch (err) {
-          console.error(err);
-
-          res.writeHead(500, {
-            "Content-Type": "application/json",
-          });
-
-          return res.end(
-            JSON.stringify({
-              message: "Invalid users file",
-            }),
-          );
-        }
-      });
-    } else if (method === "POST" && pathname === "/users") {
-      let body = "";
-
-      req.on("data", (chunk) => {
-        body += chunk.toString();
-      });
-
-      req.on("end", async () => {
-        try {
-          // 1. Convert JSON string into JavaScript object
-          const data = JSON.parse(body);
-
-          // 2. Validate user
-          const user = await createUser(data);
-
-          // 3. Read users.json
-          fs.readFile("../data/users.json", "utf8", (err, txt) => {
-            if (err) {
-              console.error(err);
-
-              res.writeHead(500, {
-                "Content-Type": "application/json",
-              });
-
-              return res.end(
-                JSON.stringify({
-                  message: "Unable to read users file",
-                }),
-              );
-            }
-
-            try {
-              // 4. Convert file content into JavaScript array
-              const users = JSON.parse(txt);
-
-              // 5. Generate ID
-              const newId = users[users.length - 1].id;
-              const newUser = {
-                id: newId + 1,
-                ...user,
-              };
-
-              // 6. Add user to array
-              users.push(newUser);
-
-              // 7. Write updated array back to file
-              fs.writeFile(
-                "../data/users.json",
-                JSON.stringify(users, null, 2),
-                (err) => {
-                  if (err) {
-                    console.error(err);
-
-                    res.writeHead(500, {
-                      "Content-Type": "application/json",
-                    });
-
-                    return res.end(
-                      JSON.stringify({
-                        message: "Unable to save user",
-                      }),
-                    );
-                  }
-
-                  // 8. Send response
-                  res.writeHead(201, {
-                    "Content-Type": "application/json",
-                  });
-
-                  res.end(
-                    JSON.stringify({
-                      message: "User created",
-                      user: newUser,
-                    }),
-                  );
-                },
-              );
-            } catch (err) {
-              res.writeHead(500, {
-                "Content-Type": "application/json",
-              });
-
-              res.end(
-                JSON.stringify({
-                  message: "Invalid users file",
-                }),
-              );
-            }
-          });
-        } catch (err) {
+        if (!data.name || !data.email || !data.password) {
           res.writeHead(400, {
             "Content-Type": "application/json",
           });
 
-          res.end(
-            JSON.stringify({
-              message: err.message,
-            }),
-          );
-        }
-      });
-    } else if (method === "GET" && pathname.startsWith("/users/")) {
-      const id = parseInt(pathname.split("/")[2]);
-
-      fs.readFile("../data/users.json", "utf8", (err, txt) => {
-        if (err) {
-          console.error(err);
-
-          res.writeHead(500, {
-            "Content-Type": "application/json",
-          });
-
           return res.end(
             JSON.stringify({
-              message: "Unable to read users file",
+              message: "Name, email and password are required",
             }),
           );
         }
 
-        try {
-          const users = JSON.parse(txt);
+        // Check whether email already exists
+        db.query("SELECT id FROM users WHERE email = ?", [data.email])
+          .then(([rows]) => {
+            if (rows.length > 0) {
+              res.writeHead(409, {
+                "Content-Type": "application/json",
+              });
 
-          const user = users.find((user) => user.id === id);
+              return res.end(
+                JSON.stringify({
+                  message: "Email already registered",
+                }),
+              );
+            }
 
-          if (!user) {
-            res.writeHead(404, {
-              "Content-Type": "application/json",
-            });
-
-            return res.end(
-              JSON.stringify({
-                message: "User not found",
-              }),
-            );
-          }
-
-          res.writeHead(200, {
-            "Content-Type": "application/json",
-          });
-
-          res.end(
-            JSON.stringify({
-              message: "User found",
-              user: user,
-            }),
-          );
-        } catch (err) {
-          console.error(err);
-
-          res.writeHead(500, {
-            "Content-Type": "application/json",
-          });
-
-          res.end(
-            JSON.stringify({
-              message: "Invalid users file",
-            }),
-          );
-        }
-      });
-    } else if (method === "DELETE" && pathname.startsWith("/users/")) {
-      const id = parseInt(pathname.split("/")[2]);
-      fs.readFile("../data/users.json", "utf8", (err, data) => {
-        if (err) {
-          console.log(err);
-          res.writeHead(500, {
-            "content-type": "application/json",
-          });
-          return res.end(
-            JSON.stringify({
-              message: "Unable to read the JSON file.",
-            }),
-          );
-        }
-
-        try {
-          const users = JSON.parse(data);
-          const updateUsers = users.filter((user) => user.id !== id);
-          fs.writeFile(
-            "../data/users.json",
-            JSON.stringify(updateUsers, null, 2),
-            (err) => {
+            // Hash password
+            bcrypt.hash(data.password, 10, (err, hashedPassword) => {
               if (err) {
                 console.error(err);
 
@@ -671,44 +72,620 @@ http
 
                 return res.end(
                   JSON.stringify({
-                    message: "Unable to save user",
+                    message: "Unable to hash password",
                   }),
                 );
               }
-              res.writeHead(200, {
-                "content-type": "application/json",
+
+              // Insert user
+              db.query(
+                "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+                [data.name, data.email, hashedPassword],
+              )
+                .then(([result]) => {
+                  res.writeHead(201, {
+                    "Content-Type": "application/json",
+                  });
+
+                  return res.end(
+                    JSON.stringify({
+                      message: "User registered successfully",
+                      user: {
+                        id: result.insertId,
+                        name: data.name,
+                        email: data.email,
+                      },
+                    }),
+                  );
+                })
+                .catch((err) => {
+                  console.error(err);
+
+                  res.writeHead(500, {
+                    "Content-Type": "application/json",
+                  });
+
+                  return res.end(
+                    JSON.stringify({
+                      message: "Unable to save user",
+                    }),
+                  );
+                });
+            });
+          })
+          .catch((err) => {
+            console.error(err);
+
+            res.writeHead(500, {
+              "Content-Type": "application/json",
+            });
+
+            return res.end(
+              JSON.stringify({
+                message: "Database error",
+              }),
+            );
+          });
+      } catch (err) {
+        res.writeHead(400, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "Invalid JSON",
+          }),
+        );
+      }
+    });
+  }
+
+  // POST /login
+  else if (method === "POST" && pathname === "/login") {
+    let loginData = "";
+
+    req.on("data", (chunk) => {
+      loginData += chunk.toString();
+    });
+
+    req.on("end", () => {
+      try {
+        const loginCred = JSON.parse(loginData);
+
+        if (!loginCred.email || !loginCred.password) {
+          res.writeHead(400, {
+            "Content-Type": "application/json",
+          });
+
+          return res.end(
+            JSON.stringify({
+              message: "Invalid Email or Password",
+            }),
+          );
+        }
+
+        // Find user in MySQL
+        db.query(
+          "SELECT id, name, email, password FROM users WHERE email = ?",
+          [loginCred.email],
+        )
+          .then(([rows]) => {
+            if (rows.length === 0) {
+              res.writeHead(401, {
+                "Content-Type": "application/json",
               });
+
               return res.end(
                 JSON.stringify({
-                  message: "Successfully deleted the user",
+                  message: "Invalid email or password",
                 }),
               );
-            },
-          );
-        } catch (err) {
-          res.writeHead(500, {
-            "content-type": "text/plain",
+            }
+
+            const existingUser = rows[0];
+
+            bcrypt.compare(
+              loginCred.password,
+              existingUser.password,
+              (err, isMatch) => {
+                if (err) {
+                  console.error(err);
+
+                  res.writeHead(500, {
+                    "Content-Type": "application/json",
+                  });
+
+                  return res.end(
+                    JSON.stringify({
+                      message: "Unable to verify password",
+                    }),
+                  );
+                }
+
+                if (!isMatch) {
+                  res.writeHead(401, {
+                    "Content-Type": "application/json",
+                  });
+
+                  return res.end(
+                    JSON.stringify({
+                      message: "Invalid email or password",
+                    }),
+                  );
+                }
+
+                const token = jwt.sign(
+                  {
+                    id: existingUser.id,
+                    email: existingUser.email,
+                  },
+                  process.env.JWT_SECRET,
+                  {
+                    expiresIn: "1h",
+                  },
+                );
+
+                res.writeHead(200, {
+                  "Content-Type": "application/json",
+                });
+
+                return res.end(
+                  JSON.stringify({
+                    message: "Login successful",
+                    token: token,
+                  }),
+                );
+              },
+            );
+          })
+          .catch((err) => {
+            console.error(err);
+
+            res.writeHead(500, {
+              "Content-Type": "application/json",
+            });
+
+            return res.end(
+              JSON.stringify({
+                message: "Database error",
+              }),
+            );
           });
-          return res.end(`ERROR: ${err}`);
+      } catch (err) {
+        res.writeHead(400, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "Invalid JSON",
+          }),
+        );
+      }
+    });
+  }
+
+  // GET /profile
+  else if (method === "GET" && pathname === "/profile") {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+      res.writeHead(401, {
+        "Content-Type": "application/json",
+      });
+
+      return res.end(
+        JSON.stringify({
+          message: "Authorization header missing",
+        }),
+      );
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+      res.writeHead(401, {
+        "Content-Type": "application/json",
+      });
+
+      return res.end(
+        JSON.stringify({
+          message: "Token missing",
+        }),
+      );
+    }
+
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      db.query("SELECT id, name, email, created_at FROM users WHERE id = ?", [
+        decoded.id,
+      ])
+        .then(([rows]) => {
+          if (rows.length === 0) {
+            res.writeHead(404, {
+              "Content-Type": "application/json",
+            });
+
+            return res.end(
+              JSON.stringify({
+                message: "User not found",
+              }),
+            );
+          }
+
+          res.writeHead(200, {
+            "Content-Type": "application/json",
+          });
+
+          return res.end(
+            JSON.stringify({
+              message: "Profile",
+              user: rows[0],
+            }),
+          );
+        })
+        .catch((err) => {
+          console.error(err);
+
+          res.writeHead(500, {
+            "Content-Type": "application/json",
+          });
+
+          return res.end(
+            JSON.stringify({
+              message: "Database error",
+            }),
+          );
+        });
+    } catch (err) {
+      res.writeHead(401, {
+        "Content-Type": "application/json",
+      });
+
+      return res.end(
+        JSON.stringify({
+          message: "Invalid or expired token",
+        }),
+      );
+    }
+  }
+
+  // GET /users
+  else if (method === "GET" && pathname === "/users") {
+    db.query("SELECT id, name, email, created_at FROM users")
+      .then(([users]) => {
+        res.writeHead(200, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "All users data",
+            users: users,
+          }),
+        );
+      })
+      .catch((err) => {
+        console.error(err);
+
+        res.writeHead(500, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "Unable to fetch users",
+          }),
+        );
+      });
+  }
+
+  // POST /users
+  else if (method === "POST" && pathname === "/users") {
+    let body = "";
+
+    req.on("data", (chunk) => {
+      body += chunk.toString();
+    });
+
+    req.on("end", async () => {
+      try {
+        const data = JSON.parse(body);
+
+        if (!data.name || !data.email) {
+          res.writeHead(400, {
+            "Content-Type": "application/json",
+          });
+
+          return res.end(
+            JSON.stringify({
+              message: "Name and email are required",
+            }),
+          );
         }
-      });
-    } else {
-      res.writeHead(404, {
-        "Content-Type": "text/plain",
+
+        // Check duplicate email
+        const [existingUsers] = await db.query(
+          "SELECT id FROM users WHERE email = ?",
+          [data.email],
+        );
+
+        if (existingUsers.length > 0) {
+          res.writeHead(409, {
+            "Content-Type": "application/json",
+          });
+
+          return res.end(
+            JSON.stringify({
+              message: "Email already exists",
+            }),
+          );
+        }
+
+        const [result] = await db.query(
+          "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+          [data.name, data.email, data.password || ""],
+        );
+
+        res.writeHead(201, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "User created",
+            user: {
+              id: result.insertId,
+              name: data.name,
+              email: data.email,
+            },
+          }),
+        );
+      } catch (err) {
+        console.error(err);
+
+        res.writeHead(400, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "Unable to create user",
+          }),
+        );
+      }
+    });
+  }
+
+  // GET /users/:id
+  else if (method === "GET" && pathname.startsWith("/users/")) {
+    const id = parseInt(pathname.split("/")[2]);
+
+    if (isNaN(id)) {
+      res.writeHead(400, {
+        "Content-Type": "application/json",
       });
 
-      res.end("Route not found");
+      return res.end(
+        JSON.stringify({
+          message: "Invalid user ID",
+        }),
+      );
     }
-  })
-  .listen(process.env.PORT_NO);
 
-// User validation
-function createUser(user) {
-  return new Promise((resolve, reject) => {
-    if (user.name && user.email) {
-      resolve(user);
-    } else {
-      reject(new Error("Name and email are required"));
+    db.query("SELECT id, name, email, created_at FROM users WHERE id = ?", [id])
+      .then(([rows]) => {
+        if (rows.length === 0) {
+          res.writeHead(404, {
+            "Content-Type": "application/json",
+          });
+
+          return res.end(
+            JSON.stringify({
+              message: "User not found",
+            }),
+          );
+        }
+
+        res.writeHead(200, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "User found",
+            user: rows[0],
+          }),
+        );
+      })
+      .catch((err) => {
+        console.error(err);
+
+        res.writeHead(500, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "Database error",
+          }),
+        );
+      });
+  }
+
+  // PUT /users/:id
+  else if (method === "PUT" && pathname.startsWith("/users/")) {
+    const id = parseInt(pathname.split("/")[2]);
+
+    if (isNaN(id)) {
+      res.writeHead(400, {
+        "Content-Type": "application/json",
+      });
+
+      return res.end(
+        JSON.stringify({
+          message: "Invalid user ID",
+        }),
+      );
     }
-  });
-}
+
+    let updateData = "";
+
+    req.on("data", (chunk) => {
+      updateData += chunk.toString();
+    });
+
+    req.on("end", async () => {
+      try {
+        const data = JSON.parse(updateData);
+
+        if (!data.name && !data.email) {
+          res.writeHead(400, {
+            "Content-Type": "application/json",
+          });
+
+          return res.end(
+            JSON.stringify({
+              message: "Enter valid Name or Email",
+            }),
+          );
+        }
+
+        const [existingUsers] = await db.query(
+          "SELECT id, name, email FROM users WHERE id = ?",
+          [id],
+        );
+
+        if (existingUsers.length === 0) {
+          res.writeHead(404, {
+            "Content-Type": "application/json",
+          });
+
+          return res.end(
+            JSON.stringify({
+              message: "Unable to find the user",
+            }),
+          );
+        }
+
+        // Build dynamic UPDATE query
+        const fields = [];
+        const values = [];
+
+        if (data.name) {
+          fields.push("name = ?");
+          values.push(data.name);
+        }
+
+        if (data.email) {
+          fields.push("email = ?");
+          values.push(data.email);
+        }
+
+        values.push(id);
+
+        const query = `
+          UPDATE users
+          SET ${fields.join(", ")}
+          WHERE id = ?
+        `;
+
+        await db.query(query, values);
+
+        const [updatedUsers] = await db.query(
+          "SELECT id, name, email, created_at FROM users WHERE id = ?",
+          [id],
+        );
+
+        res.writeHead(200, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "User data updated",
+            user: updatedUsers[0],
+          }),
+        );
+      } catch (err) {
+        console.error(err);
+
+        res.writeHead(500, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "Unable to update user",
+          }),
+        );
+      }
+    });
+  }
+
+  // DELETE /users/:id
+  else if (method === "DELETE" && pathname.startsWith("/users/")) {
+    const id = parseInt(pathname.split("/")[2]);
+
+    if (isNaN(id)) {
+      res.writeHead(400, {
+        "Content-Type": "application/json",
+      });
+
+      return res.end(
+        JSON.stringify({
+          message: "Invalid user ID",
+        }),
+      );
+    }
+
+    db.query("DELETE FROM users WHERE id = ?", [id])
+      .then(([result]) => {
+        if (result.affectedRows === 0) {
+          res.writeHead(404, {
+            "Content-Type": "application/json",
+          });
+
+          return res.end(
+            JSON.stringify({
+              message: "User not found",
+            }),
+          );
+        }
+
+        res.writeHead(200, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "Successfully deleted the user",
+          }),
+        );
+      })
+      .catch((err) => {
+        console.error(err);
+
+        res.writeHead(500, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "Unable to delete user",
+          }),
+        );
+      });
+  } else {
+    res.writeHead(404, {
+      "Content-Type": "text/plain",
+    });
+
+    return res.end("Route not found");
+  }
+});
+
+server.listen(process.env.PORT_NO, () => {
+  console.log(`Server running on port ${process.env.PORT_NO}`);
+});
