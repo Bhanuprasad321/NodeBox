@@ -1,0 +1,279 @@
+
+1) Job Description
+
+4 to 6 Years of experience using Java, Spring boot, React
+
+Ability to create Java based application (Back end + Front End) from scratch.
+
+Familiarity in working with Open-Source Tools.
+
+Location
+
+Mumbai
+
+Function
+
+CONSULTANCY
+
+Role
+
+Developer
+
+ID
+
+408169
+
+Skills
+
+Javascript | Spring Boot | React JS
+
+2) Required Skill and Experience
+
+
+
+• Experience in Java and Spring Boot
+• Expertise in RESTful API development and GraphQL
+• Experience in Web Application development
+• Experience with Postman for API testing
+DevOps & Monitoring
+• Version control: GitHub
+• CI/CD tools: Jenkins
+• Container orchestration: Kubernetes
+• Messaging systems: Kafka
+• Scripting knowledge: Python (preferred)
+• Monitoring & logging tools: Dynatrace, Splunk
+Caching
+• Experience with in-memory data grid: Hazelcast
+
+Preferred Skill and Experience
+
+• Good communication
+
+3) Instrumental in understanding the requirements and design of the product/ software
+
+Develop software solutions by studying information needs, studying systems flow, data usage and work processes
+
+Investigating problem areas followed by the software development life cycle
+
+Facilitate root cause analysis of the system issues and problem statement
+
+Identify ideas to improve system performance and impact availability
+
+Analyze client requirements and convert requirements to feasible design
+
+Collaborate with functional teams or systems analysts who carry out the detailed investigation into software requirements
+
+Conferring with project managers to obtain information on software capabilities
+
+Perform coding and ensure optimal software/ module development
+
+Determine operational feasibility by evaluating analysis, problem definition, requirements, software development and proposed software
+
+Develop and automate processes for software validation by setting up and designing test cases/scenarios/usage cases, and executing these cases
+
+Modifying software to fix errors, adapt it to new hardware, improve its performance, or upgrade interfaces.
+
+Analyzing information to recommend and plan the installation of new systems or modifications of an existing system
+
+Ensuring that code is error free or has no bugs and test failure
+
+Preparing reports on programming project specifications, activities and status
+
+Ensure all the codes are raised as per the norm defined for project / program / account with clear description and replication patterns
+
+Compile timely, comprehensive and accurate documentation and reports as requested
+
+Coordinating with the team on daily project status and progress and documenting it
+
+Providing feedback on usability and serviceability, trace the result to quality risk and report it to concerned stakeholders
+
+Status Reporting and Customer Focus on an ongoing basis with respect to project and its execution
+
+Capturing all the requirements and clarifications from the client for better quality work
+
+Taking feedback on the regular basis to ensure smooth and on time delivery
+
+Participating in continuing education and training to remain current on best practices, learn new programming languages, and better assist other team members.
+
+Consulting with engineering staff to evaluate software-hardware interfaces and develop specifications and performance requirements
+
+Document and demonstrate solutions by developing documentation, flowcharts, layouts, diagrams, charts, code comments and clear code
+
+Documenting very necessary details and reports in a formal way for proper understanding of software from client proposal to implementation
+
+Ensure good quality of interaction with customer w.r.t. e-mail content, fault report tracking, voice calls, business etiquette etc
+
+Timely Response to customer requests and no instances of complaints either internally or externally
+
+4)Preferred Skill
+
+
+
+- Experience working with factories
+
+
+
+- Experienced in development on Mac or Linux platform.
+
+
+
+- Familiar with sequencing consumer device subsystems in test software.
+
+
+
+- Lua programming language
+
+Key Responsibilities
+
+1. To develop & deliver codes for the project/ work assigned by following established standards of quality and delivery SLA
+2. To maintain the existing project by resolving/troubleshooting/debugging issues occurring in the existing project/application.
+3. To understand client requirements and accordingly develop code to create required features.
+4. Documentation of work.
+
+
+Skill Requirements
+
+- At least 4 years software development and scripting experience.
+
+
+
+- Strong scripting fundamentals in at least one dynamic language and proven ability to pick up a new one quickly.
+
+
+
+- Solid shell scripting, plus extensive experience with developer tools such as the Unix command line and IDEs.
+
+
+
+- Familiar with SW development process, SCM, GIT.
+
+
+
+- Comfortable debugging on-device from logs and serial console, with no debugger or IDE attached.
+
+
+
+- Good written and spoken English.
+
+Other Requirements
+
+- At least 4 years software development and scripting experience.
+
+
+
+- Strong scripting fundamentals in at least one dynamic language and proven ability to pick up a new one quickly.
+
+
+
+- Solid shell scripting, plus extensive experience with developer tools such as the Unix command line and IDEs.
+
+
+
+- Familiar with SW development process, SCM, GIT.
+
+
+
+- Comfortable debugging on-device from logs and serial console, with no debugger or IDE attached.
+
+
+
+- Good written and spoken English.
+5) Role and Responsibilities / KRAs
+
+Build frontend applications using React and Next.js
+Design and build backend services and APIs using Python (FastAPI)
+Use AI-assisted coding tools daily as part of your development workflow
+Design and manage databases, primarily PostgreSQL
+Deploy and maintain services on AWS
+Integrate ML models and LLM APIs (OpenAI, Anthropic, etc.) into product features
+Write clean, well-tested, production-ready code with strong unit test coverage
+Debug, optimize, and maintain services across the full stack
+Collaborate with product and design to prototype and iterate quickly
+Qualifications and Experience Requirements
+
+BE/B.Tech, MCA, or equivalent qualification.
+2–3 years of hands-on experience in Full-Stack Software Development. 
+KNOWLEDGE/SKILLS/ATTRIBUTES
+
+Must Have:
+
+Strong hands-on experience with React and Next.js
+Strong hands-on experience with Python/FastAPI
+Good working knowledge of PostgreSQL or similar relational databases
+Experience deploying and managing services on AWS
+Daily, practical experience using AI coding assistants — not just familiarity, actual workflow integration
+Comfort writing unit tests and maintaining code quality across the stack
+Exposure to ML concepts/models — using or integrating them into products
+Strong debugging skills and good judgment on when AI-generated code needs a second look
+Good communication skills
+Nice to Have:
+
+Experience with NestJS
+Experience with vector databases, RAG pipelines, or agentic workflows
+Docker, CI/CD pipelines
+Startup experience / comfort with ambiguity and fast-paced environments
+6) What We Are Looking For
+1. Technical Skills:
+Strong foundation in programming languages such as C, OOPS (for Software Engineer role)
+Basic knowledge of PHP, Laravel, and understanding of WordPress/Shopify is a plus
+Proficiency in web technologies (HTML, CSS, JavaScript) and databases (SQL/MySQL) (for technical role)
+Basic understanding of Digital Marketing concepts such as SEO, SEM, SMM (for marketing role)
+Familiarity with tools like Google Analytics, Ads, or content platforms is an advantage
+2. Eagerness to Learn:
+Passion for technology or digital marketing and willingness to explore new tools and techniques
+Open to feedback and continuous improvement
+3. Problem-Solving Abilities:
+Analytical thinking and creativity to tackle challenges
+A proactive approach to resolving issues
+4. Communication & Collaboration:
+Strong written and verbal communication skills
+Ability to work effectively in a team environment
+5. Commitment to Growth:
+Enthusiasm to build a career in IT or Digital Marketing
+Results-driven mindset with a focus on meeting deadlines and delivering quality work
+6. Organizational Commitment:
+The candidate should be open to giving a commitment of 2 years (including the 6-month internship)
+
+7) Role Overview
+Position: Backend Developer (Python / Node.js)
+
+Experience: Minimum 2+ years in IT/software industry
+
+Focus: Backend development, API integration, scalable server-side applications
+
+Growth Path: Transition into AI Agent Developer with structured AI training
+
+🛠️ Key Responsibilities
+Build and maintain backend applications (Python/Node.js)
+
+Develop and integrate RESTful APIs & third-party services
+
+Optimize performance, scalability, and reliability
+
+Work with SQL/NoSQL databases
+
+Collaborate with frontend, design, and product teams
+
+Participate in code reviews, debugging, and deployment
+
+🎯 Required Skills
+Strong backend expertise in Python or Node.js
+
+Familiarity with frameworks (Django, Flask, Express.js, NestJS)
+
+Database knowledge (MySQL, PostgreSQL, MongoDB)
+
+Git version control
+
+Basic cloud services (AWS, GCP, Azure)
+
+Problem-solving and teamwork skills
+
+⭐ Preferred Qualifications
+Bachelor’s in CS/IT or related field
+
+Experience with international projects
+
+Knowledge of microservices, Docker, AI/ML basics
+
+

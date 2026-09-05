@@ -1,9 +1,10 @@
 require("dotenv").config({ path: "../.env" });
-
+const fs = require("fs");
 const http = require("http");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const db = require("./db");
+const db = require("../config/db");
+const { buffer } = require("stream/consumers");
 
 const server = http.createServer((req, res) => {
   const method = req.method;
@@ -677,6 +678,72 @@ const server = http.createServer((req, res) => {
           }),
         );
       });
+  } else if (method === "POST" && pathname === "/upload") {
+    const chunks = [];
+    req.on("data", (chunk) => {
+      chunks.push(chunk);
+    });
+
+    req.on("end", async () => {
+      try {
+        const fileBuffer = Buffer.concat(chunks);
+        const fileName = `file-${Date.now()}.txt`;
+        const filePath = `../uploads/${fileName}`;
+        fs.writeFile(filePath, fileBuffer, (err) => {
+          console.log(err);
+          res.writeHead(500, {
+            "content-type": "application/json",
+          });
+          return res.end(
+            JSON.stringify({
+              message: "unable to save file",
+            }),
+          );
+        });
+        res.writeHead(201, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "File uploaded successfully",
+            fileName: fileName,
+          }),
+        );
+      } catch (err) {
+        res.writeHead(500, {
+          "content-type": "application/json",
+        });
+        return res.end(
+          JSON.stringify({
+            message: "File upload failed",
+          }),
+        );
+      }
+    });
+  } else if (method === "GET" && pathname === "/files") {
+    fs.readdir("../uploads", (err, files) => {
+      if (err) {
+        res.writeHead(500, {
+          "content-type": "application/json",
+        });
+        return res.end(
+          JSON.stringify({
+            message: "Unable to read the folder",
+          }),
+        );
+      }
+
+      res.writeHead(200, {
+        "content-type": "application/json",
+      });
+      return res.end(
+        JSON.stringify({
+          message: "Got the list",
+          list: files,
+        }),
+      );
+    });
   } else {
     res.writeHead(404, {
       "Content-Type": "text/plain",
