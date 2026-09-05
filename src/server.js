@@ -202,7 +202,6 @@ const server = http.createServer((req, res) => {
                     }),
                   );
                 }
-
                 if (!isMatch) {
                   res.writeHead(401, {
                     "Content-Type": "application/json",
@@ -268,39 +267,20 @@ const server = http.createServer((req, res) => {
 
   // GET /profile
   else if (method === "GET" && pathname === "/profile") {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      res.writeHead(401, {
-        "Content-Type": "application/json",
-      });
-
-      return res.end(
-        JSON.stringify({
-          message: "Authorization header missing",
-        }),
-      );
-    }
-
-    const token = authHeader.split(" ")[1];
-
+    const token = authenticate(req);
     if (!token) {
       res.writeHead(401, {
-        "Content-Type": "application/json",
+        "content-type": "application/json",
       });
-
       return res.end(
         JSON.stringify({
-          message: "Token missing",
+          message: "Invalid or Expired token",
         }),
       );
     }
-
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
       db.query("SELECT id, name, email, created_at FROM users WHERE id = ?", [
-        decoded.id,
+        token.id,
       ])
         .then(([rows]) => {
           if (rows.length === 0) {
@@ -678,7 +658,9 @@ const server = http.createServer((req, res) => {
           }),
         );
       });
-  } else if (method === "POST" && pathname === "/upload") {
+  }
+  //POST - /upload (uploading all the files)
+  else if (method === "POST" && pathname === "/upload") {
     const chunks = [];
     req.on("data", (chunk) => {
       chunks.push(chunk);
@@ -721,7 +703,9 @@ const server = http.createServer((req, res) => {
         );
       }
     });
-  } else if (method === "GET" && pathname === "/files") {
+  }
+  // GET - /files (list of files)
+  else if (method === "GET" && pathname === "/files") {
     fs.readdir("../uploads", (err, files) => {
       if (err) {
         res.writeHead(500, {
@@ -744,6 +728,117 @@ const server = http.createServer((req, res) => {
         }),
       );
     });
+  }
+  //GET - /files/:fileName (read the particular file with filename)
+  else if (method === "GET" && pathname.startsWith("/files/")) {
+    const fileName = `${pathname.split("/")[2]}.txt`;
+    console.log(fileName);
+
+    const filePath = `../uploads/${fileName}`;
+
+    fs.readdir("../uploads", (err, files) => {
+      if (err) {
+        res.writeHead(500, {
+          "content-type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "Unable to read the folder",
+          }),
+        );
+      }
+
+      const f = files.find((f) => f === fileName);
+
+      if (!f) {
+        res.writeHead(404, {
+          "content-type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "File Not found",
+          }),
+        );
+      }
+
+      const readStream = fs.createReadStream(filePath);
+
+      readStream.on("error", (err) => {
+        console.error(err);
+
+        res.writeHead(404, {
+          "Content-Type": "application/json",
+        });
+
+        res.end(
+          JSON.stringify({
+            message: "File not found",
+          }),
+        );
+      });
+
+      res.writeHead(200, {
+        "Content-Type": "text/plain",
+        "Content-Disposition": `attachment; filename="${fileName}"`,
+      });
+
+      readStream.pipe(res);
+    });
+  }
+  //DELETE - /files/:fileName (to delete particular file)
+  else if (method === "DELETE" && pathname.startsWith("/files/")) {
+    const fileName = `${pathname.split("/")[2]}.txt`;
+    const filePath = `../uploads/${fileName}`;
+    fs.readdir("../uploads", (err, files) => {
+      if (err) {
+        res.writeHead(500, {
+          "content-type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "Unable to read the folder",
+          }),
+        );
+      }
+      const f = files.find((f) => f === fileName);
+
+      if (!f) {
+        res.writeHead(404, {
+          "content-type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "File Not found",
+          }),
+        );
+      }
+
+      fs.unlink(filePath, (err) => {
+        if (err) {
+          console.log(err);
+          res.writeHead(200, {
+            "content-type": "application/json",
+          });
+          return res.end(
+            JSON.stringify({
+              message: "unable to delete file",
+            }),
+          );
+        }
+        res.writeHead(200, {
+          "content-type": "application/json",
+        });
+        return res.end(
+          JSON.stringify({
+            message: "successfully deleted the file",
+          }),
+        );
+      });
+    });
   } else {
     res.writeHead(404, {
       "Content-Type": "text/plain",
@@ -752,6 +847,20 @@ const server = http.createServer((req, res) => {
     return res.end("Route not found");
   }
 });
+
+function authenticate(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return null;
+  }
+  const token = authHeader.split(" ")[1];
+  try {
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
+    return verified;
+  } catch (err) {
+    return null;
+  }
+}
 
 server.listen(process.env.PORT_NO, () => {
   console.log(`Server running on port ${process.env.PORT_NO}`);
