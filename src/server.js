@@ -4,7 +4,6 @@ const http = require("http");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const db = require("../config/db");
-const { buffer } = require("stream/consumers");
 
 const server = http.createServer((req, res) => {
   const method = req.method;
@@ -278,58 +277,46 @@ const server = http.createServer((req, res) => {
         }),
       );
     }
-    try {
-      db.query("SELECT id, name, email, created_at FROM users WHERE id = ?", [
-        token.id,
-      ])
-        .then(([rows]) => {
-          if (rows.length === 0) {
-            res.writeHead(404, {
-              "Content-Type": "application/json",
-            });
-
-            return res.end(
-              JSON.stringify({
-                message: "User not found",
-              }),
-            );
-          }
-
-          res.writeHead(200, {
+    db.query("SELECT id, name, email, created_at FROM users WHERE id = ?", [
+      token.id,
+    ])
+      .then(([rows]) => {
+        if (rows.length === 0) {
+          res.writeHead(404, {
             "Content-Type": "application/json",
           });
 
           return res.end(
             JSON.stringify({
-              message: "Profile",
-              user: rows[0],
+              message: "User not found",
             }),
           );
-        })
-        .catch((err) => {
-          console.error(err);
+        }
 
-          res.writeHead(500, {
-            "Content-Type": "application/json",
-          });
-
-          return res.end(
-            JSON.stringify({
-              message: "Database error",
-            }),
-          );
+        res.writeHead(200, {
+          "Content-Type": "application/json",
         });
-    } catch (err) {
-      res.writeHead(401, {
-        "Content-Type": "application/json",
-      });
 
-      return res.end(
-        JSON.stringify({
-          message: "Invalid or expired token",
-        }),
-      );
-    }
+        return res.end(
+          JSON.stringify({
+            message: "Profile",
+            user: rows[0],
+          }),
+        );
+      })
+      .catch((err) => {
+        console.error(err);
+
+        res.writeHead(500, {
+          "Content-Type": "application/json",
+        });
+
+        return res.end(
+          JSON.stringify({
+            message: "Database error",
+          }),
+        );
+      });
   }
 
   // GET /users
@@ -360,83 +347,6 @@ const server = http.createServer((req, res) => {
           }),
         );
       });
-  }
-
-  // POST /users
-  else if (method === "POST" && pathname === "/users") {
-    let body = "";
-
-    req.on("data", (chunk) => {
-      body += chunk.toString();
-    });
-
-    req.on("end", async () => {
-      try {
-        const data = JSON.parse(body);
-
-        if (!data.name || !data.email) {
-          res.writeHead(400, {
-            "Content-Type": "application/json",
-          });
-
-          return res.end(
-            JSON.stringify({
-              message: "Name and email are required",
-            }),
-          );
-        }
-
-        // Check duplicate email
-        const [existingUsers] = await db.query(
-          "SELECT id FROM users WHERE email = ?",
-          [data.email],
-        );
-
-        if (existingUsers.length > 0) {
-          res.writeHead(409, {
-            "Content-Type": "application/json",
-          });
-
-          return res.end(
-            JSON.stringify({
-              message: "Email already exists",
-            }),
-          );
-        }
-
-        const [result] = await db.query(
-          "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-          [data.name, data.email, data.password || ""],
-        );
-
-        res.writeHead(201, {
-          "Content-Type": "application/json",
-        });
-
-        return res.end(
-          JSON.stringify({
-            message: "User created",
-            user: {
-              id: result.insertId,
-              name: data.name,
-              email: data.email,
-            },
-          }),
-        );
-      } catch (err) {
-        console.error(err);
-
-        res.writeHead(400, {
-          "Content-Type": "application/json",
-        });
-
-        return res.end(
-          JSON.stringify({
-            message: "Unable to create user",
-          }),
-        );
-      }
-    });
   }
 
   // GET /users/:id
@@ -746,7 +656,7 @@ const server = http.createServer((req, res) => {
         }),
       );
     }
-    db.query("SELECT file_name,file_path FROM files WHERE user_id = ?", [
+    db.query("SELECT id,file_name,created_at FROM files WHERE user_id = ?", [
       token.id,
     ])
       .then(([result]) => {
@@ -942,7 +852,7 @@ const server = http.createServer((req, res) => {
             );
           })
           .catch((err) => {
-            res.writeHead(200, {
+            res.writeHead(500, {
               "content-type": "application/json",
             });
             return res.end(
