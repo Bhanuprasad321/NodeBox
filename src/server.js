@@ -783,9 +783,10 @@ const server = http.createServer((req, res) => {
         );
       });
   }
-  //GET - /files/:fileName (read the particular file with filename)
+  //GET - /files/:id (read the particular file with file id)
   else if (method === "GET" && pathname.startsWith("/files/")) {
     const token = authenticate(req);
+
     if (!token) {
       res.writeHead(401, {
         "content-type": "application/json",
@@ -796,63 +797,75 @@ const server = http.createServer((req, res) => {
         }),
       );
     }
-    const fileName = `${pathname.split("/")[2]}.txt`;
-    console.log(fileName);
 
-    const filePath = `../uploads/${fileName}`;
+    const fileId = parseInt(pathname.split("/")[2]);
 
-    fs.readdir("../uploads", (err, files) => {
-      if (err) {
+    if (isNaN(fileId)) {
+      res.writeHead(400, {
+        "content-type": "application/json",
+      });
+      return res.end(
+        JSON.stringify({
+          message: "Invalid file ID",
+        }),
+      );
+    }
+
+    db.query(
+      "SELECT file_name, file_path FROM files WHERE id = ? AND user_id = ?",
+      [fileId, token.id],
+    )
+      .then(([result]) => {
+        if (result.length === 0) {
+          res.writeHead(404, {
+            "content-type": "application/json",
+          });
+          return res.end(
+            JSON.stringify({
+              message: "File not found or you don't have access",
+            }),
+          );
+        }
+
+        const file = result[0];
+        const readStream = fs.createReadStream(file.file_path);
+
+        readStream.on("error", (err) => {
+          console.error(err);
+
+          res.writeHead(404, {
+            "content-type": "application/json",
+          });
+
+          return res.end(
+            JSON.stringify({
+              message: "File not found",
+            }),
+          );
+        });
+
+        res.writeHead(200, {
+          "Content-Type": "text/plain",
+          "Content-Disposition": `attachment; filename="${file.file_name}"`,
+        });
+
+        readStream.pipe(res);
+      })
+      .catch((err) => {
+        console.error(err);
+
         res.writeHead(500, {
           "content-type": "application/json",
         });
 
         return res.end(
           JSON.stringify({
-            message: "Unable to read the folder",
-          }),
-        );
-      }
-
-      const f = files.find((f) => f === fileName);
-
-      if (!f) {
-        res.writeHead(404, {
-          "content-type": "application/json",
-        });
-
-        return res.end(
-          JSON.stringify({
-            message: "File Not found",
-          }),
-        );
-      }
-
-      const readStream = fs.createReadStream(filePath);
-
-      readStream.on("error", (err) => {
-        console.error(err);
-
-        res.writeHead(404, {
-          "Content-Type": "application/json",
-        });
-
-        res.end(
-          JSON.stringify({
-            message: "File not found",
+            message: "Unable to fetch file",
           }),
         );
       });
-
-      res.writeHead(200, {
-        "Content-Type": "text/plain",
-        "Content-Disposition": `attachment; filename="${fileName}"`,
-      });
-
-      readStream.pipe(res);
-    });
   }
-  //DELETE - /files/:fileName (to delete particular file)
+  //DELETE - /files/:id (to delete particular file)
   else if (method === "DELETE" && pathname.startsWith("/files/")) {
     const token = authenticate(req);
     if (!token) {
@@ -865,34 +878,33 @@ const server = http.createServer((req, res) => {
         }),
       );
     }
-    const fileName = `${pathname.split("/")[2]}.txt`;
-    const filePath = `../uploads/${fileName}`;
-    fs.readdir("../uploads", (err, files) => {
-      if (err) {
-        res.writeHead(500, {
-          "content-type": "application/json",
-        });
-
-        return res.end(
-          JSON.stringify({
-            message: "Unable to read the folder",
-          }),
-        );
-      }
-      const f = files.find((f) => f === fileName);
-
-      if (!f) {
+    const fileId = parseInt(pathname.split("/")[2]);
+    if (isNaN(fileId)) {
+      res.writeHead(400, {
+        "content-type": "application/json",
+      });
+      return res.end(
+        JSON.stringify({
+          message: "Invalid file ID",
+        }),
+      );
+    }
+    db.query("SELECT file_name,file_path FROM files WHERE id=? AND user_id=?", [
+      fileId,
+      token.id,
+    ]).then(([result]) => {
+      if (result.length === 0) {
         res.writeHead(404, {
           "content-type": "application/json",
         });
-
         return res.end(
           JSON.stringify({
-            message: "File Not found",
+            message: "File not found or you dont have access for that file",
           }),
         );
       }
-
+      const file = result[0];
+      const filePath = file.file_path;
       fs.unlink(filePath, (err) => {
         if (err) {
           console.log(err);
@@ -905,14 +917,40 @@ const server = http.createServer((req, res) => {
             }),
           );
         }
-        res.writeHead(200, {
-          "content-type": "application/json",
-        });
-        return res.end(
-          JSON.stringify({
-            message: "successfully deleted the file",
-          }),
-        );
+        db.query("DELETE FROM files WHERE id = ? AND user_id = ?", [
+          fileId,
+          token.id,
+        ])
+          .then(([result]) => {
+            if (result.affectedRows === 0) {
+              res.writeHead(500, {
+                "content-type": "application/json",
+              });
+              return res.end(
+                JSON.stringify({
+                  message: "unable to update the user files",
+                }),
+              );
+            }
+            res.writeHead(200, {
+              "content-type": "application/json",
+            });
+            return res.end(
+              JSON.stringify({
+                message: "successfully deleted the file",
+              }),
+            );
+          })
+          .catch((err) => {
+            res.writeHead(200, {
+              "content-type": "application/json",
+            });
+            return res.end(
+              JSON.stringify({
+                message: "Unable to update the user files",
+              }),
+            );
+          });
       });
     });
   } else {
