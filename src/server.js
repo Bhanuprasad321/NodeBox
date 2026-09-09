@@ -661,6 +661,17 @@ const server = http.createServer((req, res) => {
   }
   //POST - /upload (uploading all the files)
   else if (method === "POST" && pathname === "/upload") {
+    const token = authenticate(req);
+    if (!token) {
+      res.writeHead(401, {
+        "content-type": "application/json",
+      });
+      return res.end(
+        JSON.stringify({
+          message: "Invalid or Expired token",
+        }),
+      );
+    }
     const chunks = [];
     req.on("data", (chunk) => {
       chunks.push(chunk);
@@ -672,26 +683,44 @@ const server = http.createServer((req, res) => {
         const fileName = `file-${Date.now()}.txt`;
         const filePath = `../uploads/${fileName}`;
         fs.writeFile(filePath, fileBuffer, (err) => {
-          console.log(err);
-          res.writeHead(500, {
-            "content-type": "application/json",
-          });
-          return res.end(
-            JSON.stringify({
-              message: "unable to save file",
-            }),
-          );
+          if (err) {
+            console.log(err);
+            res.writeHead(500, {
+              "content-type": "application/json",
+            });
+            return res.end(
+              JSON.stringify({
+                message: "unable to save file",
+              }),
+            );
+          }
+          db.query(
+            "INSERT INTO files (user_id,file_name,file_path) VALUES (?,?,?)",
+            [token.id, fileName, filePath],
+          )
+            .then(([result]) => {
+              res.writeHead(201, {
+                "Content-Type": "application/json",
+              });
+              return res.end(
+                JSON.stringify({
+                  message: "File uploaded successfully",
+                  fileName: fileName,
+                }),
+              );
+            })
+            .catch((err) => {
+              res.writeHead(500, {
+                "Content-Type": "application/json",
+              });
+              return res.end(
+                JSON.stringify({
+                  message: "Unable to save file information",
+                  fileName: fileName,
+                }),
+              );
+            });
         });
-        res.writeHead(201, {
-          "Content-Type": "application/json",
-        });
-
-        return res.end(
-          JSON.stringify({
-            message: "File uploaded successfully",
-            fileName: fileName,
-          }),
-        );
       } catch (err) {
         res.writeHead(500, {
           "content-type": "application/json",
@@ -706,31 +735,67 @@ const server = http.createServer((req, res) => {
   }
   // GET - /files (list of files)
   else if (method === "GET" && pathname === "/files") {
-    fs.readdir("../uploads", (err, files) => {
-      if (err) {
+    const token = authenticate(req);
+    if (!token) {
+      res.writeHead(401, {
+        "content-type": "application/json",
+      });
+      return res.end(
+        JSON.stringify({
+          message: "Invalid or Expired token",
+        }),
+      );
+    }
+    db.query("SELECT file_name,file_path FROM files WHERE user_id = ?", [
+      token.id,
+    ])
+      .then(([result]) => {
+        if (result.length === 0) {
+          res.writeHead(200, {
+            "content-type": "application/json",
+          });
+          return res.end(
+            JSON.stringify({
+              message: "No files uploaded",
+            }),
+          );
+        } else {
+          res.writeHead(200, {
+            "content-type": "application/json",
+          });
+          return res.end(
+            JSON.stringify({
+              message: "Got the list",
+              list: result,
+            }),
+          );
+        }
+      })
+      .catch((err) => {
+        console.log(err);
         res.writeHead(500, {
           "content-type": "application/json",
         });
         return res.end(
           JSON.stringify({
-            message: "Unable to read the folder",
+            message: "Unable to load the list of files",
           }),
         );
-      }
-
-      res.writeHead(200, {
+      });
+  }
+  //GET - /files/:fileName (read the particular file with filename)
+  else if (method === "GET" && pathname.startsWith("/files/")) {
+    const token = authenticate(req);
+    if (!token) {
+      res.writeHead(401, {
         "content-type": "application/json",
       });
       return res.end(
         JSON.stringify({
-          message: "Got the list",
-          list: files,
+          message: "Invalid or Expired token",
         }),
       );
-    });
-  }
-  //GET - /files/:fileName (read the particular file with filename)
-  else if (method === "GET" && pathname.startsWith("/files/")) {
+    }
     const fileName = `${pathname.split("/")[2]}.txt`;
     console.log(fileName);
 
@@ -789,6 +854,17 @@ const server = http.createServer((req, res) => {
   }
   //DELETE - /files/:fileName (to delete particular file)
   else if (method === "DELETE" && pathname.startsWith("/files/")) {
+    const token = authenticate(req);
+    if (!token) {
+      res.writeHead(401, {
+        "content-type": "application/json",
+      });
+      return res.end(
+        JSON.stringify({
+          message: "Invalid or Expired token",
+        }),
+      );
+    }
     const fileName = `${pathname.split("/")[2]}.txt`;
     const filePath = `../uploads/${fileName}`;
     fs.readdir("../uploads", (err, files) => {
@@ -820,7 +896,7 @@ const server = http.createServer((req, res) => {
       fs.unlink(filePath, (err) => {
         if (err) {
           console.log(err);
-          res.writeHead(200, {
+          res.writeHead(500, {
             "content-type": "application/json",
           });
           return res.end(
